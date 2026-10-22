@@ -62,6 +62,7 @@ if TYPE_CHECKING:
     from nemo_gym.agents.testing.agent_session_conformance import check_agent_seed_rejected
     from nemo_gym.agents.testing.failure_assertions import raises_agent_failure
     from nemo_gym.agents.utils.ordered_operations import ActivationConflictError, OrderedOperationLedger
+    from nemo_gym.agents.utils.sandbox_media import download_media, upload_media
     from nemo_gym.agents.utils.sandbox_network import SandboxNetworkAccess, restrict_sandbox_network
     from nemo_gym.agents.utils.sandbox_observation import lifecycle_observation
     from nemo_gym.agents.utils.sandbox_python import SandboxPythonRuntime
@@ -93,6 +94,8 @@ if TYPE_CHECKING:
 # What code outside the library, such as servers, imports from this package. Each name's submodule loads
 # on first use. Code inside nemo_gym imports the submodules directly.
 _PUBLIC_API = {
+    "download_media": "utils.sandbox_media",
+    "upload_media": "utils.sandbox_media",
     "ActivationConflictError": "utils.ordered_operations",
     "AGENT_ACTIVATION_HEADER": "base_responses_api_agent",
     "AGENT_OUTCOME_METADATA_KEY": "agent_outcome",
