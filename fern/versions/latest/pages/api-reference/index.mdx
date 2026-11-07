@@ -134,6 +134,11 @@ A failure reports what Gym observed and leaves the decision to you:
 
 Group failures by `domain` and a new kind under an existing domain needs no change from you.
 
+`TaskRunner.run_task` also counts the rollout in `gym.rollout.completed_total` (`scored` when it has a reward, `failed`
+when it has none, with the failure's kind as a label either way) and, for a scored rollout, in
+`gym.rollout.rewarded_total`. They are exported when telemetry is on in the calling process: call
+`nemo_gym.telemetry.setup.init_telemetry` first.
+
 `TaskResult.raw` holds Gym's raw `/run` response (the failure record for a failed `/run`). Its keys are not part of the contract: depend on `outcome`, and use `raw` for debugging.
 
 ### Constraints
