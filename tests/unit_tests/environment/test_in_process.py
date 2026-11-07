@@ -75,10 +75,12 @@ class _FakeRuns:
         self.reward = reward
         self.fail = fail
         self.sent: list[list[dict]] = []
+        self.bounds: dict = {}
         self.completions: _Completions | None = None
 
-    def __call__(self, rows, head_server_config):
+    def __call__(self, rows, head_server_config, **bounds):
         self.sent.append(rows)
+        self.bounds = bounds
         assert head_server_config == HEAD
 
         async def completed(row):
@@ -96,7 +98,7 @@ class _FakeResults:
     def __init__(self, result) -> None:
         self.result = result
 
-    def __call__(self, rows, head_server_config):
+    def __call__(self, rows, head_server_config, **bounds):
         async def completed(row):
             return {**row, "agent_ref": {"name": "agent"}}, self.result
 
@@ -348,7 +350,7 @@ class TestTaskRunner:
         monkeypatch.setattr(
             RolloutCollectionHelper,
             "run_outcomes",
-            lambda self, rows, head_server_config: runs(rows, head_server_config),
+            lambda self, rows, head_server_config, **bounds: runs(rows, head_server_config, **bounds),
         )
 
         result = await runner.run_task("b", rollout_id="trial-7")
@@ -362,8 +364,17 @@ class TestTaskRunner:
         monkeypatch.setattr(
             RolloutCollectionHelper,
             "run_outcomes",
-            lambda self, rows, head_server_config: runs(rows, head_server_config),
+            lambda self, rows, head_server_config, **bounds: runs(rows, head_server_config, **bounds),
         )
+
+    async def test_bounds_the_connection_retries_as_gym_eval_run_does(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        runner = TaskRunner([_row("a")], registry_server=HEAD)
+        runs = _FakeRuns()
+        self._serve(monkeypatch, runs)
+
+        await runner.run_task("a")
+
+        assert runs.bounds == {"max_num_tries": 2, "connect_grace_s": 60.0}
 
     async def test_calls_without_a_rollout_id_get_different_ones(self, monkeypatch: pytest.MonkeyPatch) -> None:
         runner = TaskRunner([_row("a"), _row("b")], registry_server=HEAD)
@@ -394,7 +405,7 @@ class TestTaskRunner:
         async def never_finishes():
             await release.wait()
 
-        def run_outcomes(self, rows, head_server_config):
+        def run_outcomes(self, rows, head_server_config, **bounds):
             hung.append(_Completions([never_finishes()]))
             return hung[0]
 
