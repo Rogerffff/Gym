@@ -314,11 +314,11 @@ class TaskRunner:
         completions = self._helper.run_outcomes([row], head_server_config=self._registry_server)
         try:
             (completion,) = completions
-            _, result = await completion
+            resolved_row, result = await completion
         finally:
             await completions.aclose()
         outcome = _outcome(result)
-        _record_outcome(outcome, self._helper._dispatch_name(row))
+        _record_outcome(outcome, self._helper._dispatch_name(resolved_row))
         return outcome
 
 
