@@ -192,6 +192,8 @@ async def test_unset_extensions_keep_setup_activation_and_capture_unchanged(setu
     assert config["provider"]["nemo_gym"]["models"]["dummy_model"] == {
         "interleaved": {"field": "reasoning_content"},
         "limit": {"context": 32000, "input": 32000, "output": 4096},
+        "attachment": True,
+        "modalities": {"input": ["text", "image"], "output": ["text"]},
     }
     assert set(config) == {"model", "small_model", "enabled_providers", "autoupdate", "share", "provider", "plugin"}
     assert config["plugin"] == [Path(f"{directory}/task_environment.mjs").as_uri()]
@@ -363,6 +365,8 @@ async def test_export_failure_is_a_gap_that_keeps_the_result_and_release(setup, 
 
 async def test_hanging_export_is_bounded_by_the_collection_budget(setup, tmp_path):
     agent, sandbox = setup
+    # The close budget bounds the collection; keep it short so the hanging export exhausts it.
+    agent.config.session_close_timeout_seconds = 1
     agent.config.export_dir = EXPORT_DIR
     capture_observations(sandbox, tmp_path)
     never = asyncio.Event()
