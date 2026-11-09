@@ -133,6 +133,7 @@ from responses_api_agents.opencode_agent.runtime import (
     RUNTIME_INSTALLER_SOURCE,
     TASK_ENVIRONMENT_PLUGIN_FILE,
     TASK_ENVIRONMENT_PLUGIN_SOURCE,
+    UNRESTRICTED_IMAGE_ATTACHMENT,
     apply_observability_patch,
     command_failure_reason,
 )
@@ -465,9 +466,11 @@ class OpenCodeAgentConfig(BaseResponsesAPIAgentConfig):
     # exists at seed, it is imported and the first activation continues that session; its messages stay history.
     session_import_path: str | None = None
     # Sandbox sessions only. Close also returns an ordinary session's own turns (one per saved assistant reply,
-    # compaction summaries left out), as continuation sessions always do. Without them, rollout collection builds one
-    # turn per captured call, so the summary call of a compaction is counted as a step too.
-    return_session_trajectory: bool = False
+    # compaction summaries left out), as continuation sessions always do, so rollout collection joins each captured
+    # call to its step and the harness evidence checks can match them. Without them, collection builds one turn per
+    # captured call with no message ID, every call is reported as an unmatched assistant message, and the summary call
+    # of a compaction is counted as a step too.
+    return_session_trajectory: bool = True
 
     @model_validator(mode="after")
     def _validate_prompt_agent(self) -> Self:
@@ -1703,6 +1706,9 @@ class OpenCodeAgent(SimpleResponsesAPIAgent):
             "enabled_providers": ["nemo_gym"],
             "autoupdate": False,
             "share": "disabled",
+            # Images reach the model unchanged; the environment decides their size. opencode_config cannot set
+            # attachment, so this always applies.
+            "attachment": copy.deepcopy(UNRESTRICTED_IMAGE_ATTACHMENT),
             "provider": {
                 "nemo_gym": {
                     "npm": "@ai-sdk/openai-compatible",

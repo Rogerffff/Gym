@@ -146,7 +146,9 @@ The session path accepts one user task, optional system/developer text and
 `instructions`. The user task may include images as base64 data-URI `input_image` parts.
 The adapter uploads them into the session directory and attaches them with `opencode run --file`.
 Sessions always declare image input on the Gym model, so OpenCode also passes on images its
-read tool returns; a text-only deployment rejects such requests. Images outside the user task
+read tool returns; a text-only deployment rejects such requests. Sessions also lift OpenCode's
+`attachment.image` limits, which would otherwise shrink and re-encode any image over 2000 px on a side
+or 5 MiB of base64, so the model gets images at the size the environment sent. Images outside the user task
 and image URLs are rejected. Request `temperature` and `top_p` are applied to every OpenCode agent
 (see [Owner extensions](#owner-extensions)). A request `max_output_tokens` passes when it is at
 least the configured `max_output_tokens`, because OpenCode's limit for each model call already
@@ -279,11 +281,12 @@ confirmation. A final negative termination receipt fails the activation and skip
 verification; close releases the borrowed connection with `cleanup_confirmed: false`.
 The task sandbox remains available to its owner for verification or teardown.
 
-Ordinary single-turn sessions keep their existing protocol. With `return_session_trajectory:
-true`, their close also returns the session's trajectory (one turn per saved assistant reply,
-compaction summaries excluded), so rollout collection joins captured calls to those turns and
-the summary call stays on the compaction record. Without it, collection builds one turn per
-captured call, and the summary call of a compaction is counted as a step too.
+By default (`return_session_trajectory: true`), the close of an ordinary single-turn session also
+returns the session's trajectory (one turn per saved assistant reply, compaction summaries
+excluded), so rollout collection joins captured calls to those turns, the harness evidence checks
+match each model call to its step, and the summary call stays on the compaction record. With
+`false`, collection builds one turn per captured call with no message ID, so every call is reported
+as an unmatched assistant message and the summary call of a compaction is counted as a step too.
 
 ### Offline sandbox runtimes and native model identity
 
