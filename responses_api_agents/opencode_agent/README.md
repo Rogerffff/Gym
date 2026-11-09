@@ -146,7 +146,9 @@ The session path accepts one user task, optional system/developer text and
 `instructions`. The user task may include images as base64 data-URI `input_image` parts.
 The adapter uploads them into the session directory and attaches them with `opencode run --file`.
 Sessions always declare image input on the Gym model, so OpenCode also passes on images its
-read tool returns; a text-only deployment rejects such requests. Images outside the user task
+read tool returns; a text-only deployment rejects such requests. Sessions also lift OpenCode's
+`attachment.image` limits, which would otherwise shrink and re-encode any image over 2000 px on a side
+or 5 MiB of base64, so the model gets images at the size the environment sent. Images outside the user task
 and image URLs are rejected. Request `temperature` and `top_p` are applied to every OpenCode agent
 (see [Owner extensions](#owner-extensions)). A request `max_output_tokens` passes when it is at
 least the configured `max_output_tokens`, because OpenCode's limit for each model call already

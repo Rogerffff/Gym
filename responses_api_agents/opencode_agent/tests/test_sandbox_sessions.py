@@ -382,9 +382,14 @@ def test_session_attaches_prompt_images_and_declares_image_input(setup):
         image_path = payload["command"][payload["command"].index("--file") + 1]
         assert image_path.startswith(f"{sandbox.directory}/input-media/") and image_path.endswith(".png")
         assert sandbox.files[image_path] == PNG
-        model = json.loads(payload["env"]["OPENCODE_CONFIG_CONTENT"])["provider"]["nemo_gym"]["models"]["dummy_model"]
+        config = json.loads(payload["env"]["OPENCODE_CONFIG_CONTENT"])
+        model = config["provider"]["nemo_gym"]["models"]["dummy_model"]
         assert model["attachment"] is True
         assert model["modalities"]["input"] == ["text", "image"]
+        # OpenCode's image limits are lifted, so it forwards the uploaded bytes instead of shrinking them.
+        assert config["attachment"] == {
+            "image": {"max_width": 2**31 - 1, "max_height": 2**31 - 1, "max_base64_bytes": 2**31 - 1}
+        }
         closed = client.post("/v1/agent_sessions/close", json=close_body(created.json()["agent_session_id"]))
         assert closed.status_code == 200, closed.text
 
@@ -992,6 +997,12 @@ def test_token_capture_routes_every_opencode_model_call_to_the_rollout(setup):
         config["provider"]["nemo_gym"]["options"]["baseURL"]
         == "http://model.example:9000/ng-rollout/opencode-smoke-a2/training-token-capture/v1"
     )
+
+
+def test_session_config_keeps_the_image_limits_out_of_opencode_config():
+    # The adapter owns OpenCode's attachment limits, so images always reach the model at the size the environment sent.
+    error = opencode_app._session_opencode_config_error({"attachment": {"image": {"max_width": 1000}}})
+    assert error is not None and "attachment" in error
 
 
 def test_with_token_capture_a_seed_refuses_build_steps(setup, monkeypatch):
